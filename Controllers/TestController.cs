@@ -7,7 +7,7 @@ using Microsoft.AspNetCore.Mvc;
 // Helps avoid name collisions.
 namespace Campus.Api.Controllers;
 
-[// [ApiController]: indicates this class is an API controller.
+// [ApiController]: indicates this class is an API controller.
 // Provides useful default behaviors (automatic validation, etc.).
 // [Route("api/[controller]"): sets the base route for this controller.
 // [controller] is replaced with the controller name without the "Controller" suffix.]

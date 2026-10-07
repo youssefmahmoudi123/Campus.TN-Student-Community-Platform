@@ -16,4 +16,6 @@ public class User
     public string Role { get; set; } = "Student";
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
+    public bool IsSuspended { get; set; } = false;
 }

@@ -69,6 +69,11 @@ public class AuthService
             return null;
         }
 
+        if (user.IsSuspended)
+        {
+            throw new Exception("Your account has been suspended.");
+        }
+
         var result = _passwordHasher.VerifyHashedPassword(
             user,
             user.PasswordHash,
