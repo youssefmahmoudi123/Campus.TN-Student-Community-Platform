@@ -15,6 +15,7 @@ public class UserService
     public async Task<UserResponse?> GetCurrentUserAsync(int userId)
     {
         var user = await _context.Users
+            .Include(u => u.Role)
             .FirstOrDefaultAsync(u => u.Id == userId);
 
         if (user == null)
@@ -28,7 +29,7 @@ public class UserService
             FirstName = user.FirstName,
             LastName = user.LastName,
             Email = user.Email,
-            Role = user.Role
+            Role = user.Role.Name
         };
     }
     public async Task<UserResponse?> UpdateProfileAsync(
@@ -63,7 +64,7 @@ public class UserService
             FirstName = user.FirstName,
             LastName = user.LastName,
             Email = user.Email,
-            Role = user.Role
+            Role = (await _context.Roles.FindAsync(user.RoleId))?.Name ?? string.Empty
         };
     }
 }

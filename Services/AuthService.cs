@@ -1,4 +1,5 @@
-﻿using Campus.Api.Data;
+﻿
+using Campus.Api.Data;
 using Campus.Api.DTOs;
 using Campus.Api.Models;
 using Microsoft.AspNetCore.Identity;
@@ -10,8 +11,6 @@ using Microsoft.IdentityModel.Tokens;
 
 namespace Campus.Api.Services;
 
-// Manages user authentication: registration, login, and JWT token generation.
-// Handles password hashing and credential validation.
 public class AuthService
 {
     private readonly AppDbContext _context;
@@ -19,32 +18,56 @@ public class AuthService
     private readonly IConfiguration _configuration;
 
     public AuthService(
-     AppDbContext context,
-     IPasswordHasher<User> passwordHasher,
-     IConfiguration configuration)
+        AppDbContext context,
+        IPasswordHasher<User> passwordHasher,
+        IConfiguration configuration)
     {
         _context = context;
         _passwordHasher = passwordHasher;
         _configuration = configuration;
     }
 
-    // Creates new user account with email and hashed password.
-    // Throws exception if email already registered.
+    // Registers a new user with the default Student role.
     public async Task<User> RegisterAsync(RegisterRequest request)
     {
-        var existingUser = _context.Users
-            .FirstOrDefault(u => u.Email == request.Email);
+        var emailExists = await _context.Users
+            .AnyAsync(u => u.Email == request.Email);
 
-        if (existingUser != null)
+        if (emailExists)
         {
             throw new Exception("Email already exists.");
+        }
+
+        // The role must already exist in the Roles table.
+        var studentRole = await _context.Roles
+            .SingleOrDefaultAsync(r => r.Name == "Student");
+
+        if (studentRole == null)
+        {
+            throw new InvalidOperationException(
+                "The default Student role has not been configured.");
+        }
+
+        // Verify that the selected faculty belongs to the university.
+        var facultyExists = await _context.Faculties
+            .AnyAsync(f =>
+                f.Id == request.FacultyId &&
+                f.UniversityId == request.UniversityId);
+
+        if (!facultyExists)
+        {
+            throw new Exception(
+                "The selected faculty does not belong to the selected university.");
         }
 
         var user = new User
         {
             FirstName = request.FirstName,
             LastName = request.LastName,
-            Email = request.Email
+            Email = request.Email,
+            UniversityId = request.UniversityId,
+            FacultyId = request.FacultyId,
+            RoleId = studentRole.Id
         };
 
         user.PasswordHash =
@@ -57,11 +80,11 @@ public class AuthService
         return user;
     }
 
-    // Validates user credentials and generates JWT token if authentication succeeds.
-    // Returns null if user not found or password invalid.
+    // Validates credentials and generates a JWT.
     public async Task<LoginResponse?> LoginAsync(LoginRequest request)
     {
         var user = await _context.Users
+            .Include(u => u.Role)
             .FirstOrDefaultAsync(u => u.Email == request.Email);
 
         if (user == null)
@@ -93,21 +116,27 @@ public class AuthService
             FirstName = user.FirstName,
             LastName = user.LastName,
             Email = user.Email,
-            Role = user.Role
+            Role = user.Role.Name
         };
     }
 
-    // Creates JWT token with user claims (ID, email, name, role).
-    // Token expires based on configuration. Used for stateless authentication.
+    // Creates a JWT containing the user's identity and role.
     private string GenerateToken(User user)
     {
         var claims = new List<Claim>
-    {
-        new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
-        new Claim(ClaimTypes.Email, user.Email),
-        new Claim(ClaimTypes.Name, $"{user.FirstName} {user.LastName}"),
-        new Claim(ClaimTypes.Role, user.Role)
-    };
+        {
+            new Claim(
+                ClaimTypes.NameIdentifier,
+                user.Id.ToString()),
+
+            new Claim(ClaimTypes.Email, user.Email),
+
+            new Claim(
+                ClaimTypes.Name,
+                $"{user.FirstName} {user.LastName}"),
+
+            new Claim(ClaimTypes.Role, user.Role.Name)
+        };
 
         var key = new SymmetricSecurityKey(
             Encoding.UTF8.GetBytes(_configuration["Jwt:Key"]!));
@@ -116,8 +145,8 @@ public class AuthService
             key,
             SecurityAlgorithms.HmacSha256);
 
-        var expirationMinutes =
-            int.Parse(_configuration["Jwt:ExpirationMinutes"]!);
+        var expirationMinutes = int.Parse(
+            _configuration["Jwt:ExpirationMinutes"]!);
 
         var token = new JwtSecurityToken(
             issuer: _configuration["Jwt:Issuer"],

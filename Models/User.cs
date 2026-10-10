@@ -1,6 +1,9 @@
-﻿namespace Campus.Api.Models;
+﻿
+using System.Data;
 
-// Represents a user entity in the database. Stores profile, hashed password, role, and creation timestamp.
+namespace Campus.Api.Models;
+
+// Represents a user account in Compus.tn.
 public class User
 {
     public int Id { get; set; }
@@ -13,9 +16,24 @@ public class User
 
     public string PasswordHash { get; set; } = string.Empty;
 
-    public string Role { get; set; } = "Student";
+    // Every user belongs to a university and a faculty.
+    public int UniversityId { get; set; }
+
+    public int FacultyId { get; set; }
+
+    // Every user has exactly one role.
+    public int RoleId { get; set; }
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
     public bool IsSuspended { get; set; } = false;
+
+    // Navigation properties: related database entities.
+    public University University { get; set; } = null!;
+
+    public Faculty Faculty { get; set; } = null!;
+
+    public Role Role { get; set; } = null!;
+
+    public StudentProfile? StudentProfile { get; set; }
 }

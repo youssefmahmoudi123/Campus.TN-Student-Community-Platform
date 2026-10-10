@@ -1,6 +1,7 @@
-﻿namespace Campus.Api.DTOs;
+﻿
+namespace Campus.Api.DTOs;
 
-// Data transfer object for user registration endpoint. Contains user profile and password.
+// Data required to register a new Compus.tn account.
 public class RegisterRequest
 {
     public string FirstName { get; set; } = string.Empty;
@@ -10,4 +11,9 @@ public class RegisterRequest
     public string Email { get; set; } = string.Empty;
 
     public string Password { get; set; } = string.Empty;
+
+    // Academic affiliation selected during registration.
+    public int UniversityId { get; set; }
+
+    public int FacultyId { get; set; }
 }
