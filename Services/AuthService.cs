@@ -30,12 +30,14 @@ public class AuthService
     // Registers a new user with the default Student role.
     public async Task<User> RegisterAsync(RegisterRequest request)
     {
+        var normalizedEmail = request.Email.Trim().ToLowerInvariant();
+
         var emailExists = await _context.Users
-            .AnyAsync(u => u.Email == request.Email);
+            .AnyAsync(u => u.Email.ToLower() == normalizedEmail);
 
         if (emailExists)
         {
-            throw new Exception("Email already exists.");
+            throw new Exception("An account with this email already exists.");
         }
 
         // The role must already exist in the Roles table.
@@ -64,7 +66,7 @@ public class AuthService
         {
             FirstName = request.FirstName,
             LastName = request.LastName,
-            Email = request.Email,
+            Email = normalizedEmail,
             UniversityId = request.UniversityId,
             FacultyId = request.FacultyId,
             RoleId = studentRole.Id
@@ -83,9 +85,11 @@ public class AuthService
     // Validates credentials and generates a JWT.
     public async Task<LoginResponse?> LoginAsync(LoginRequest request)
     {
+        var normalizedEmail = request.Email.Trim().ToLowerInvariant();
+
         var user = await _context.Users
             .Include(u => u.Role)
-            .FirstOrDefaultAsync(u => u.Email == request.Email);
+            .FirstOrDefaultAsync(u => u.Email == normalizedEmail);
 
         if (user == null)
         {
