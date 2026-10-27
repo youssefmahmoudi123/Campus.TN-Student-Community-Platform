@@ -1,4 +1,4 @@
-# Compus.tn — Student Community Platform
+# Campus.tn — Student Community Platform
 
 **Built for students, by students.**
 
